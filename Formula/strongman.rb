@@ -9,58 +9,36 @@ class Strongman < Formula
   url "https://github.com/strongswan/strongMan.git",
       using: :git,
       branch: "master"
-  # If you want to pin to a specific commit for stability, replace the line above with:
-  # url "https://github.com/strongswan/strongMan.git",
-  #     using: :git,
-  #     revision: "PUT_FULL_COMMIT_SHA_HERE"
-
-  # No upstream tags; keep version synthetic so brew can track upgrades in your tap.
   version "0.0.0+master"
   license "MIT"
 
   depends_on "python@3.12"
-  depends_on "git"
   depends_on "strongswan"
-  depends_on "pkg-config"
-  depends_on "openssl@3"
+
+  resource "django" do
+    url "https://files.pythonhosted.org/packages/c8/4c/7c74ba43f6ffcadfbd4e02eae4b3ed77e91be3b3abec64b1e1bbeca1a0a50/Django-4.2.25.tar.gz"
+    sha256 "87e47d2b0e41715db97b01d9f5f3c5cf4e9cc8b5cefe7001e1e16a5bf3b5b4c3"
+  end
+
+  resource "requests" do
+    url "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz"
+    sha256 "dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf"
+  end
+
+  resource "gunicorn" do
+    url "https://files.pythonhosted.org/packages/cb/eb/4e3ce7a7ab27b484e9b51cb48b5651fc7a11c23f0ef7a4f39e01fb6c96d9/gunicorn-23.0.0.tar.gz"
+    sha256 "f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"
+  end
 
   def install
-    # Create a dedicated virtualenv
     venv = virtualenv_create(libexec, "python3.12")
+    venv.pip_install resources
     
-    # Install gunicorn as it's needed for the service
-    venv.pip_install "gunicorn"
-    
-    # strongMan doesn't have a standard setup.py, so we need to install dependencies manually
-    # Install essential Django/Python dependencies that strongMan needs
-    venv.pip_install "django"
-    venv.pip_install "requests"
-    
-    # Try to install from requirements.txt if it exists, but skip problematic packages
-    if (buildpath/"requirements.txt").exist?
-      # Read requirements and install them one by one, skipping problematic ones
-      requirements = (buildpath/"requirements.txt").read.split("\n")
-      requirements.each do |req|
-        req = req.strip
-        next if req.empty? || req.start_with?("#")
-        
-        # Skip cryptography if it causes build issues - strongMan might work without it
-        next if req.downcase.include?("cryptography")
-        
-        # Try to install each requirement, continue on failure
-        result = system libexec/"bin/pip", "install", req, [:out, :err] => :close
-        unless result
-          ohai "Skipping problematic requirement: #{req}"
-        end
-      end
-    end
-    
-    # Copy the strongMan source code to the virtualenv's site-packages
-    # This makes the 'strongman' module importable
+    # Copy the strongMan source to make it importable
     site_packages = libexec/"lib/python3.12/site-packages"
     site_packages.install buildpath/"strongman"
     
-    # Also copy the entire source tree to pkgshare for manage.py and other tools
+    # Copy entire source tree to pkgshare for manage.py and static files
     pkgshare.install Dir["*"]
 
     # Runtime launcher script for gunicorn
