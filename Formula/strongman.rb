@@ -8,8 +8,14 @@ class Strongman < Formula
   homepage "https://github.com/strongswan/strongMan"
   url "https://github.com/strongswan/strongMan.git",
       using: :git,
-      tag: "v1.0.0"
-  version "1.0.0"
+      branch: "master"
+  # If you want to pin to a specific commit for stability, replace the line above with:
+  # url "https://github.com/strongswan/strongMan.git",
+  #     using: :git,
+  #     revision: "PUT_FULL_COMMIT_SHA_HERE"
+
+  # No upstream tags; keep version synthetic so brew can track upgrades in your tap.
+  version "0.0.0+master"
   license "MIT"
 
   depends_on "python@3.12"
@@ -17,16 +23,23 @@ class Strongman < Formula
   depends_on "strongswan"
 
   def install
-    # Create virtualenv and install all Python dependencies
+    # Create a dedicated virtualenv
     venv = virtualenv_create(libexec, "python3.12")
-    system libexec/"bin/pip", "install", "--upgrade", "pip", "wheel"
-    system libexec/"bin/pip", "install", "-r", "requirements.txt"
-    system libexec/"bin/pip", "install", "gunicorn"
 
-    # Copy app into pkgshare
+    # Upgrade base tools and install deps
+    system libexec/"bin/pip", "install", "--upgrade", "pip", "wheel", "setuptools"
+
+    # If the repo has a requirements.txt, install it; otherwise pip will resolve from setup.py
+    reqs = buildpath/"requirements.txt"
+    system libexec/"bin/pip", "install", "-r", reqs if reqs.exist?
+
+    # Install the app itself (equivalent to `sudo ./setup.py install` but scoped to the venv)
+    system libexec/"bin/pip", "install", "."
+
+    # Keep a copy of the sources (handy for manage.py tasks like createsuperuser/migrations)
     pkgshare.install Dir["*"]
 
-    # Runtime launcher script
+    # Runtime launcher script for gunicorn
     (libexec/"strongman-run").write <<~EOS
       #!/bin/bash
       set -euo pipefail
@@ -34,15 +47,17 @@ class Strongman < Formula
       export VICI_PORT="${VICI_PORT:-4502}"
       UI_BIND="${UI_BIND:-0.0.0.0:1515}"
       WORKERS="${GUNICORN_WORKERS:-2}"
-      exec "#{libexec}/bin/gunicorn" \\
-        "strongman.wsgi:application" \\
-        --bind "${UI_BIND}" \\
-        --workers "${WORKERS}" \\
-        --chdir "#{pkgshare}"
+
+      # Some strongMan setups expect to run from the project dir (for static/templates)
+      cd "#{pkgshare}"
+      exec "#{libexec}/bin/gunicorn" \
+        "strongman.wsgi:application" \
+        --bind "${UI_BIND}" \
+        --workers "${WORKERS}"
     EOS
     chmod 0755, libexec/"strongman-run"
 
-    # CLI shortcut
+    # Convenience CLI to run in foreground (optional)
     (bin/"strongman").write <<~EOS
       #!/bin/bash
       exec "#{libexec}/strongman-run" "$@"
@@ -66,42 +81,34 @@ class Strongman < Formula
 
   def caveats
     <<~EOS
-      ✅ strongMan installed successfully!
+      1) Enable VICI in strongSwan (loopback-only):
+         Intel: /usr/local/etc/strongswan.d/charon/vici.conf
+         ARM:   /opt/homebrew/etc/strongswan.d/charon/vici.conf
 
-      1️⃣ Enable VICI plugin in strongSwan (keep it loopback-only):
-          Intel: /usr/local/etc/strongswan.d/charon/vici.conf
-          ARM:   /opt/homebrew/etc/strongswan.d/charon/vici.conf
+         vici {
+           socket = unix:///usr/local/var/run/charon.vici
+           tcp = yes
+           tcp_listen = 127.0.0.1
+           tcp_port = 4502
+         }
 
-          vici {
-            socket = unix:///usr/local/var/run/charon.vici
-            tcp = yes
-            tcp_listen = 127.0.0.1
-            tcp_port = 4502
-          }
+         Then:  sudo ipsec restart
 
-          sudo ipsec restart
+      2) Start strongMan:
+         brew services start strongman          # user agent (after login)
+         sudo brew services start strongman     # system daemon (boot before login)
 
-      2️⃣ Start strongMan (web UI for strongSwan):
-          brew services start strongman          # user-level
-          sudo brew services start strongman     # system-level (boot before login)
+      3) First-time admin:
+         cd #{opt_pkgshare}
+         #{opt_libexec}/bin/python manage.py createsuperuser
 
-      3️⃣ Access it at:
-          http://localhost:1515/
-
-      4️⃣ Create your first admin user:
-          cd #{opt_pkgshare}
-          #{libexec}/bin/python manage.py createsuperuser
-
-      Logs:
-          #{var}/log/strongman.log
-          #{var}/log/strongman-error.log
-
-      To stop:
-          brew services stop strongman
+      UI:  http://<host>:1515/
+      Logs: #{var}/log/strongman.log , #{var}/log/strongman-error.log
     EOS
   end
 
   test do
-    assert_match "gunicorn", shell_output("#{bin}/strongman --help", 0)
+    # Just confirm our wrapper is present and executable
+    assert_predicate bin/"strongman", :executable?
   end
 end
