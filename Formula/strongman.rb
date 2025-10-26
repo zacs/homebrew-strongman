@@ -16,8 +16,8 @@ class Strongman < Formula
   depends_on "strongswan"
 
   resource "django" do
-    url "https://files.pythonhosted.org/packages/c8/4c/7c74ba43f6ffcadfbd4e02eae4b3ed77e91be3b3abec64b1e1bbeca1a0a50/Django-4.2.25.tar.gz"
-    sha256 "87e47d2b0e41715db97b01d9f5f3c5cf4e9cc8b5cefe7001e1e16a5bf3b5b4c3"
+    url "https://files.pythonhosted.org/packages/de/f1/230c6c20a77f8f1812c01dfd0166416e7c000a43e05f701b0b83301ebfc1/django-4.2.25.tar.gz"
+    sha256 "2391ab3d78191caaae2c963c19fd70b99e9751008da22a0adcc667c5a4f8d311"
   end
 
   resource "requests" do
