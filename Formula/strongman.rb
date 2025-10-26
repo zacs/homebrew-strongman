@@ -32,7 +32,14 @@ class Strongman < Formula
 
   def install
     venv = virtualenv_create(libexec, "python3.12")
+    
+    # Install specific packages that we know work well
     venv.pip_install resources
+    
+    # Install additional Django dependencies that aren't in our resources
+    venv.pip_install "asgiref"
+    venv.pip_install "sqlparse"
+    venv.pip_install "tzdata" if OS.mac?
     
     # Copy the strongMan source to make it importable
     site_packages = libexec/"lib/python3.12/site-packages"
