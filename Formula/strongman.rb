@@ -47,9 +47,9 @@ class Strongman < Formula
         # Skip cryptography if it causes build issues - strongMan might work without it
         next if req.downcase.include?("cryptography")
         
-        begin
-          system libexec/"bin/pip", "install", req
-        rescue
+        # Try to install each requirement, continue on failure
+        result = system libexec/"bin/pip", "install", req, [:out, :err] => :close
+        unless result
           ohai "Skipping problematic requirement: #{req}"
         end
       end
@@ -63,10 +63,8 @@ class Strongman < Formula
     # Also copy the entire source tree to pkgshare for manage.py and other tools
     pkgshare.install Dir["*"]
 
-    # Keep a copy of the sources (handy for manage.py tasks like createsuperuser/migrations)
-    pkgshare.install Dir["*"]
-
     # Runtime launcher script for gunicorn
+    (libexec/"strongman-run").unlink if (libexec/"strongman-run").exist?
     (libexec/"strongman-run").write <<~EOS
       #!/bin/bash
       set -euo pipefail
@@ -88,6 +86,7 @@ class Strongman < Formula
     chmod 0755, libexec/"strongman-run"
 
     # Convenience CLI to run in foreground (optional)
+    (bin/"strongman").unlink if (bin/"strongman").exist?
     (bin/"strongman").write <<~EOS
       #!/bin/bash
       exec "#{libexec}/strongman-run" "$@"
