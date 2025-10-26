@@ -31,8 +31,19 @@ class Strongman < Formula
     # Install gunicorn as it's needed for the service
     venv.pip_install "gunicorn"
     
-    # Install the strongMan application and its dependencies
-    venv.pip_install_and_link buildpath
+    # strongMan doesn't have a standard setup.py, so we need to install dependencies manually
+    # Install common Django/Python dependencies that strongMan needs
+    venv.pip_install "django"
+    venv.pip_install "requests"
+    venv.pip_install "cryptography"
+    
+    # Copy the strongMan source code to the virtualenv's site-packages
+    # This makes the 'strongman' module importable
+    site_packages = libexec/"lib/python3.12/site-packages"
+    site_packages.install buildpath/"strongman"
+    
+    # Also copy the entire source tree to pkgshare for manage.py and other tools
+    pkgshare.install Dir["*"]
 
     # Keep a copy of the sources (handy for manage.py tasks like createsuperuser/migrations)
     pkgshare.install Dir["*"]
@@ -46,11 +57,14 @@ class Strongman < Formula
       UI_BIND="${UI_BIND:-0.0.0.0:1515}"
       WORKERS="${GUNICORN_WORKERS:-2}"
 
+      # Set Python path to include the strongMan source
+      export PYTHONPATH="#{pkgshare}:${PYTHONPATH:-}"
+      
       # Some strongMan setups expect to run from the project dir (for static/templates)
       cd "#{pkgshare}"
-      exec "#{libexec}/bin/gunicorn" \
-        "strongman.wsgi:application" \
-        --bind "${UI_BIND}" \
+      exec "#{libexec}/bin/gunicorn" \\
+        "strongman.wsgi:application" \\
+        --bind "${UI_BIND}" \\
         --workers "${WORKERS}"
     EOS
     chmod 0755, libexec/"strongman-run"
