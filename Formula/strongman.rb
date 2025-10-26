@@ -26,7 +26,7 @@ class Strongman < Formula
   end
 
   resource "gunicorn" do
-    url "https://files.pythonhosted.org/packages/cb/eb/4e3ce7a7ab27b484e9b51cb48b5651fc7a11c23f0ef7a4f39e01fb6c96d9/gunicorn-23.0.0.tar.gz"
+    url "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz"
     sha256 "f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"
   end
 
