@@ -20,26 +20,41 @@ class Strongman < Formula
     sha256 "2391ab3d78191caaae2c963c19fd70b99e9751008da22a0adcc667c5a4f8d311"
   end
 
-  resource "requests" do
-    url "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz"
-    sha256 "dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf"
-  end
-
   resource "gunicorn" do
     url "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz"
     sha256 "f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"
   end
 
+  resource "asn1crypto" do
+    url "https://files.pythonhosted.org/packages/c1/89/eca9e70e32ddbeb6fb2f179757c58a5da905fc833fc00f972a1d5fcac40dc/asn1crypto-1.5.1.tar.gz"
+    sha256 "13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"
+  end
+
+  resource "pyaes" do
+    url "https://files.pythonhosted.org/packages/44/66/2c17bae31c906613795711fc78045c285048168919ace2220daa372c7d72d/pyaes-1.6.1.tar.gz"
+    sha256 "02c1b1405c38d3c370b085fb952dd8bea3fadcee6411ad99f312cc129c536d8f"
+  end
+
+  resource "django-tables2" do
+    url "https://files.pythonhosted.org/packages/0a/ec/02398c88e9b5c2bb10d3eef2a52cbd831dd16c90f3b99e72e3df87b45c1c3/django-tables2-2.3.4.tar.gz"
+    sha256 "dfc5b3db1ae4d78d00faeab7c5d3e306c04f4e6e4d9a2b4b4b2c4b78b7ec9529"
+  end
+
+  resource "vici" do
+    url "https://files.pythonhosted.org/packages/bd/bb/aca7726ef14d59d6a76f29dd61578a7877c73bd872d84d6f30dd58559a78/vici-5.8.4.tar.gz"
+    sha256 "50156fa12219789c416e35729fa05f808a8e8c63e6baec79b2bb2991cffe53c0"
+  end
+
+  resource "dj-static" do
+    url "https://files.pythonhosted.org/packages/2b/8f/77a4b8ec50c821193bf9682c7896f12fd0418eb3711a7d66796ede59c23b/dj-static-0.0.6.tar.gz"
+    sha256 "032ec1c532617922e6e3e956d504a6fb1acce4fc1c7c94612d0fda21828ce8ef"
+  end
+
+
+
   def install
     venv = virtualenv_create(libexec, "python3.12")
-    
-    # Install specific packages that we know work well
     venv.pip_install resources
-    
-    # Install additional Django dependencies that aren't in our resources
-    venv.pip_install "asgiref"
-    venv.pip_install "sqlparse"
-    venv.pip_install "tzdata" if OS.mac?
     
     # Copy the strongMan source to make it importable
     site_packages = libexec/"lib/python3.12/site-packages"
