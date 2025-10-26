@@ -21,20 +21,28 @@ class Strongman < Formula
   depends_on "python@3.12"
   depends_on "git"
   depends_on "strongswan"
+  depends_on "pkg-config"
+  depends_on "openssl@3"
 
   def install
     # Create a dedicated virtualenv
     venv = virtualenv_create(libexec, "python3.12")
 
-    # Upgrade base tools and install deps
-    system libexec/"bin/pip", "install", "--upgrade", "pip", "wheel", "setuptools"
+    # Upgrade base tools and install deps with proper error handling
+    system libexec/"bin/pip", "install", "--upgrade", "pip"
+    system libexec/"bin/pip", "install", "--upgrade", "wheel", "setuptools"
+
+    # Install gunicorn first as it's needed for the service
+    system libexec/"bin/pip", "install", "gunicorn"
 
     # If the repo has a requirements.txt, install it; otherwise pip will resolve from setup.py
     reqs = buildpath/"requirements.txt"
-    system libexec/"bin/pip", "install", "-r", reqs if reqs.exist?
-
-    # Install the app itself (equivalent to `sudo ./setup.py install` but scoped to the venv)
-    system libexec/"bin/pip", "install", "."
+    if reqs.exist?
+      system libexec/"bin/pip", "install", "-r", reqs
+    else
+      # Install the app itself and its dependencies
+      system libexec/"bin/pip", "install", "."
+    end
 
     # Keep a copy of the sources (handy for manage.py tasks like createsuperuser/migrations)
     pkgshare.install Dir["*"]
