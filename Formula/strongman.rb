@@ -25,23 +25,20 @@ class Strongman < Formula
   depends_on "openssl@3"
 
   def install
-    # Create a dedicated virtualenv
+    # Create a dedicated virtualenv and install dependencies
     venv = virtualenv_create(libexec, "python3.12")
-
-    # Upgrade base tools and install deps with proper error handling
-    system libexec/"bin/pip", "install", "--upgrade", "pip"
-    system libexec/"bin/pip", "install", "--upgrade", "wheel", "setuptools"
-
+    
     # Install gunicorn first as it's needed for the service
-    system libexec/"bin/pip", "install", "gunicorn"
+    venv.pip_install "gunicorn"
 
     # If the repo has a requirements.txt, install it; otherwise pip will resolve from setup.py
     reqs = buildpath/"requirements.txt"
     if reqs.exist?
-      system libexec/"bin/pip", "install", "-r", reqs
+      venv.pip_install_and_link buildpath, using: "pip"
+      venv.pip_install "-r", reqs
     else
       # Install the app itself and its dependencies
-      system libexec/"bin/pip", "install", "."
+      venv.pip_install_and_link buildpath
     end
 
     # Keep a copy of the sources (handy for manage.py tasks like createsuperuser/migrations)
