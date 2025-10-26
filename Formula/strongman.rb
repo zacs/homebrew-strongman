@@ -34,8 +34,8 @@ class Strongman < Formula
     # If the repo has a requirements.txt, install it; otherwise pip will resolve from setup.py
     reqs = buildpath/"requirements.txt"
     if reqs.exist?
-      venv.pip_install_and_link buildpath, using: "pip"
       venv.pip_install "-r", reqs
+      venv.pip_install_and_link buildpath
     else
       # Install the app itself and its dependencies
       venv.pip_install_and_link buildpath
