@@ -26,7 +26,7 @@ class Strongman < Formula
   end
 
   resource "asn1crypto" do
-    url "https://files.pythonhosted.org/packages/c1/89/eca9e70e32ddbeb6fb2f179757c58a5da905fc833fc00f972a1d5fcac40dc/asn1crypto-1.5.1.tar.gz"
+    url "https://files.pythonhosted.org/packages/de/cf/d547feed25b5244fcb9392e288ff9fdc3280b10260362fc45d37a798a6ee/asn1crypto-1.5.1.tar.gz"
     sha256 "13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"
   end
 
@@ -36,8 +36,8 @@ class Strongman < Formula
   end
 
   resource "django-tables2" do
-    url "https://files.pythonhosted.org/packages/0a/ec/02398c88e9b5c2bb10d3eef2a52cbd831dd16c90f3b99e72e3df87b45c1c3/django-tables2-2.3.4.tar.gz"
-    sha256 "dfc5b3db1ae4d78d00faeab7c5d3e306c04f4e6e4d9a2b4b4b2c4b78b7ec9529"
+    url "https://files.pythonhosted.org/packages/4b/89/e3a4dae972a4194f7ab83aa412fe56bf56c122eafe0fc7e6e34eb2749dc2/django-tables2-2.3.4.tar.gz"
+    sha256 "50ccadbd13740a996d8a4d4f144ef80134745cd0b5ec278061537e341f5ef7a2"
   end
 
   resource "vici" do
