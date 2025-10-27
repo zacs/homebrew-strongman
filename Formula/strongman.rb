@@ -1,21 +1,16 @@
-# typed: false
-# frozen_string_literal: true
-
 class Strongman < Formula
   include Language::Python::Virtualenv
 
-  desc "Web UI for managing strongSwan via VICI on macOS"
+  desc "Web-based strongSwan IPsec VPN management interface"
   homepage "https://github.com/strongswan/strongMan"
-  url "https://github.com/strongswan/strongMan.git",
-      using: :git,
-      branch: "master"
-  version "0.0.0+master"
-  license "MIT"
+  url "https://github.com/strongswan/strongMan/archive/refs/heads/main.tar.gz"
+  sha256 "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+  license "GPL-3.0-or-later"
+  head "https://github.com/strongswan/strongMan.git", branch: "main"
 
-  depends_on "python@3.12"
-  depends_on "strongswan"
+  depends_on "python@3.13"
 
-  resource "django" do
+  resource "Django" do
     url "https://files.pythonhosted.org/packages/de/f1/230c6c20a77f8f1812c01dfd0166416e7c000a43e05f701b0b83301ebfc1/django-4.2.25.tar.gz"
     sha256 "2391ab3d78191caaae2c963c19fd70b99e9751008da22a0adcc667c5a4f8d311"
   end
@@ -23,6 +18,11 @@ class Strongman < Formula
   resource "gunicorn" do
     url "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz"
     sha256 "f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"
+  end
+
+  resource "vici" do
+    url "https://files.pythonhosted.org/packages/bd/bb/aca7726ef14d59d6a76f29dd61578a7877c73bd872d84d6f30dd58559a78/vici-5.8.4.tar.gz"
+    sha256 "50156fa12219789c416e35729fa05f808a8e8c63e6baec79b2bb2991cffe53c0"
   end
 
   resource "asn1crypto" do
@@ -40,104 +40,62 @@ class Strongman < Formula
     sha256 "50ccadbd13740a996d8a4d4f144ef80134745cd0b5ec278061537e341f5ef7a2"
   end
 
-  resource "vici" do
-    url "https://files.pythonhosted.org/packages/bd/bb/aca7726ef14d59d6a76f29dd61578a7877c73bd872d84d6f30dd58559a78/vici-5.8.4.tar.gz"
-    sha256 "50156fa12219789c416e35729fa05f808a8e8c63e6baec79b2bb2991cffe53c0"
-  end
-
   resource "dj-static" do
     url "https://files.pythonhosted.org/packages/2b/8f/77a4b8ec50c821193bf9682c7896f12fd0418eb3711a7d66796ede59c23b/dj-static-0.0.6.tar.gz"
     sha256 "032ec1c532617922e6e3e956d504a6fb1acce4fc1c7c94612d0fda21828ce8ef"
   end
 
-
+  resource "oscrypto" do
+    url "https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.tar.gz"
+    sha256 "5855d4cc18172513c6b2c6dde00b89731faa907c7003d4965862f2f2e0fb9ae4"
+  end
 
   def install
-    venv = virtualenv_create(libexec, "python3.12")
+    # Create the virtualenv and install dependencies only
+    venv = virtualenv_create(libexec, "python3.13")
     venv.pip_install resources
     
-    # Copy the strongMan source to make it importable
-    site_packages = libexec/"lib/python3.12/site-packages"
-    site_packages.install buildpath/"strongman"
+    # Create configuration directory
+    (etc/"strongman").mkpath
     
-    # Copy entire source tree to pkgshare for manage.py and static files
-    pkgshare.install Dir["*"]
+    # Create data directories
+    (var/"lib/strongman").mkpath
+    (var/"log/strongman").mkpath
 
-    # Runtime launcher script for gunicorn
-    (libexec/"strongman-run").unlink if (libexec/"strongman-run").exist?
-    (libexec/"strongman-run").write <<~EOS
-      #!/bin/bash
-      set -euo pipefail
-      export VICI_HOST="${VICI_HOST:-127.0.0.1}"
-      export VICI_PORT="${VICI_PORT:-4502}"
-      UI_BIND="${UI_BIND:-0.0.0.0:1515}"
-      WORKERS="${GUNICORN_WORKERS:-2}"
-
-      # Set Python path to include the strongMan source
-      export PYTHONPATH="#{pkgshare}:${PYTHONPATH:-}"
-      
-      # Some strongMan setups expect to run from the project dir (for static/templates)
-      cd "#{pkgshare}"
-      exec "#{libexec}/bin/gunicorn" \\
-        "strongman.wsgi:application" \\
-        --bind "${UI_BIND}" \\
-        --workers "${WORKERS}"
-    EOS
-    chmod 0755, libexec/"strongman-run"
-
-    # Convenience CLI to run in foreground (optional)
-    (bin/"strongman").unlink if (bin/"strongman").exist?
-    (bin/"strongman").write <<~EOS
-      #!/bin/bash
-      exec "#{libexec}/strongman-run" "$@"
-    EOS
-    chmod 0755, bin/"strongman"
+    # Install Django project files to libexec
+    libexec.install "strongMan"
+    
+    # Create wrapper script for manage.py
+    (bin/"strongman").write_env_script libexec/"bin/python", libexec/"strongMan/manage.py",
+      :PYTHONPATH => libexec,
+      :STRONGMAN_SECRET_KEY => "homebrew-default-key-change-in-production",
+      :STRONGMAN_DEBUG => "False",
+      :STRONGMAN_DATABASE_PATH => var/"lib/strongman/db.sqlite3",
+      :STRONGMAN_LOG_DIR => var/"log/strongman"
   end
 
   service do
-    run [opt_libexec/"strongman-run"]
-    keep_alive true
-    working_dir var
-    log_path var/"log/strongman.log"
-    error_log_path var/"log/strongman-error.log"
-    environment_variables(
-      "VICI_HOST" => "127.0.0.1",
-      "VICI_PORT" => "4502",
-      "UI_BIND" => "0.0.0.0:1515",
-      "GUNICORN_WORKERS" => "2"
-    )
+    run [opt_bin/"strongman", "runserver", "127.0.0.1:8000"]
+    working_dir var/"lib/strongman"
+    log_path var/"log/strongman/stdout.log"
+    error_log_path var/"log/strongman/stderr.log"
   end
 
-  def caveats
-    <<~EOS
-      1) Enable VICI in strongSwan (loopback-only):
-         Intel: /usr/local/etc/strongswan.d/charon/vici.conf
-         ARM:   /opt/homebrew/etc/strongswan.d/charon/vici.conf
-
-         vici {
-           socket = unix:///usr/local/var/run/charon.vici
-           tcp = yes
-           tcp_listen = 127.0.0.1
-           tcp_port = 4502
-         }
-
-         Then:  sudo ipsec restart
-
-      2) Start strongMan:
-         brew services start strongman          # user agent (after login)
-         sudo brew services start strongman     # system daemon (boot before login)
-
-      3) First-time admin:
-         cd #{opt_pkgshare}
-         #{opt_libexec}/bin/python manage.py createsuperuser
-
-      UI:  http://<host>:1515/
-      Logs: #{var}/log/strongman.log , #{var}/log/strongman-error.log
-    EOS
+  def post_install
+    # Initialize database
+    system bin/"strongman", "migrate", "--noinput"
+    
+    # Create superuser (optional)
+    puts "To create an admin user, run: #{bin}/strongman createsuperuser"
+    puts "To start the server, run: brew services start strongman" 
+    puts "strongMan will be available at http://127.0.0.1:8000"
   end
 
   test do
-    # Just confirm our wrapper is present and executable
-    assert_predicate bin/"strongman", :executable?
+    # Test that Django can load the application
+    system bin/"strongman", "check"
+    
+    # Test help command
+    system bin/"strongman", "help"
   end
 end
