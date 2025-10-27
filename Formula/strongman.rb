@@ -49,6 +49,11 @@ class Strongman < Formula
     sha256 "c343bd80a0bec947a9860adb4c432ffa7db769836c64238fc34bdc3fec84d590"
   end
 
+  resource "static3" do
+    url "https://files.pythonhosted.org/packages/87/b0/9cf15108b73c4f2ffffe11d237c938f57785f55d3693d822d565432cb680/static3-0.7.0.tar.gz"
+    sha256 "674641c64bc75507af2eb20bef7e7e3593dca993dec6674be108fa15b42f47c8"
+  end
+
   resource "oscrypto" do
     url "https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.tar.gz"
     sha256 "5855d4cc18172513c6b2c6dde00b89731faa907c7003d4965862f2f2e0fb9ae4"
@@ -68,6 +73,10 @@ class Strongman < Formula
     # Install Django project files to libexec
     # Install the entire repository structure
     libexec.install Dir["*"]
+    
+    # Create required config files
+    (libexec/"secret_key.txt").write("homebrew-default-secret-key-change-in-production")
+    (libexec/"db_key.txt").write("homebrew-default-db-key-change-in-production")
     
     # Create wrapper script for Django management using manage.py
     (bin/"strongman").write_env_script libexec/"bin/python", libexec/"manage.py",
@@ -96,7 +105,10 @@ class Strongman < Formula
     puts "4. Access locally: http://127.0.0.1:1515"
     puts "5. Access remotely: http://YOUR_SERVER_IP:1515"
     puts ""
-    puts "SECURITY WARNING: Change STRONGMAN_SECRET_KEY for production!"
+    puts "SECURITY WARNING: Change default keys for production!"
+    puts "- secret_key.txt: #{libexec}/secret_key.txt"
+    puts "- db_key.txt: #{libexec}/db_key.txt"
+    puts ""
     puts "VICI Setup: Ensure strongSwan is running with VICI socket enabled"
     puts ""
     puts "Config files:"
