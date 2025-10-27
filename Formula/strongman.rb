@@ -3,7 +3,7 @@ class Strongman < Formula
 
   desc "Web-based strongSwan IPsec VPN management interface"
   homepage "https://github.com/strongswan/strongMan"
-  url "https://github.com/strongswan/strongMan.git", branch: "main"
+  url "https://github.com/strongswan/strongMan.git", branch: "master"
   version "1.0.0"
   license "GPL-3.0-or-later"
 
