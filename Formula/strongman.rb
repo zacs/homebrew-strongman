@@ -59,20 +59,20 @@ class Strongman < Formula
     sha256 "09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272"
   end
 
+  resource "tzdata" do
+    url "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz"
+    sha256 "b60a638fcc0daffadf82fe3c2c4d11cb31af38fcd48fa2e9c4ad5ac4c14d27a0"
+  end
+
   resource "oscrypto" do
     url "https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.tar.gz"
     sha256 "5855d4cc18172513c6b2c6dde00b89731faa907c7003d4965862f2f2e0fb9ae4"
   end
 
   def install
-    # Create the virtualenv and install dependencies from requirements.txt
+    # Create the virtualenv and install dependencies
     venv = virtualenv_create(libexec, "python3.13")
-    
-    # First install resources we need
     venv.pip_install resources
-    
-    # Then install everything from strongMan's requirements.txt
-    venv.pip_install buildpath/"requirements.txt"
     
     # Create configuration directory
     (etc/"strongman").mkpath
