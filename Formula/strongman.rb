@@ -8,6 +8,7 @@ class Strongman < Formula
   license "GPL-3.0-or-later"
 
   depends_on "python@3.13"
+  depends_on "strongswan"
 
   resource "Django" do
     url "https://files.pythonhosted.org/packages/de/f1/230c6c20a77f8f1812c01dfd0166416e7c000a43e05f701b0b83301ebfc1/django-4.2.25.tar.gz"
@@ -79,6 +80,17 @@ class Strongman < Formula
     
     # Create data directories (following macOS conventions)
     (var/"lib/strongman").mkpath
+    (var/"log").mkpath
+    
+    # Configure strongSwan VICI plugin
+    vici_conf = <<~EOS
+      vici {
+          load = yes
+          socket = unix:///var/run/charon.vici
+      }
+    EOS
+    
+    (etc/"strongswan.d/charon/vici.conf").write vici_conf
 
     # Install Django project files to libexec
     # Install the entire repository structure
@@ -96,37 +108,89 @@ class Strongman < Formula
       :STRONGMAN_DEBUG => "False",
       :STRONGMAN_DATABASE_PATH => var/"lib/strongman/db.sqlite3",
       :DJANGO_ALLOWED_HOSTS => "*"
+    
+    # Initialize Django application
+    system bin/"strongman", "migrate", "--noinput"
+    system bin/"strongman", "collectstatic", "--noinput", "--clear"
+    
+    # Create VICI permission fix script
+    vici_fix_script = <<~EOS
+      #!/bin/bash
+      # Fix VICI socket permissions for strongMan access
+      if [ -e /var/run/charon.vici ]; then
+        sudo chmod 666 /var/run/charon.vici
+        echo "VICI socket permissions fixed"
+      else
+        echo "VICI socket not found - ensure strongSwan is running"
+      fi
+    EOS
+    
+    (bin/"strongman-fix-vici").write vici_fix_script
+    chmod 0755, bin/"strongman-fix-vici"
+    
+    # Create service wrapper script that handles setup
+    service_wrapper = <<~EOS
+      #!/bin/bash
+      # strongMan service wrapper with automatic setup
+      
+      echo "Starting strongMan service..."
+      
+      # Start strongSwan if not running
+      if ! pgrep -f charon > /dev/null; then
+        echo "Starting strongSwan..."
+        sudo ipsec start
+        sleep 2
+      fi
+      
+      # Fix VICI permissions
+      if [ -e /var/run/charon.vici ]; then
+        sudo chmod 666 /var/run/charon.vici
+        echo "VICI permissions fixed"
+      else
+        echo "Warning: VICI socket not found"
+      fi
+      
+      # Start Django server
+      exec "#{bin}/strongman" runserver 0.0.0.0:1515
+    EOS
+    
+    (bin/"strongman-service").write service_wrapper
+    chmod 0755, bin/"strongman-service"
   end
 
   service do
-    run [opt_bin/"strongman", "runserver", "0.0.0.0:1515"]
-    working_dir var/"lib/strongman"
-    log_path "~/Library/Logs/strongman.log"
-    error_log_path "~/Library/Logs/strongman.error.log"
+    run opt_bin/"strongman-service"
+    working_dir HOMEBREW_PREFIX/"var/lib/strongman"
+    log_path HOMEBREW_PREFIX/"var/log/strongman.log"
+    error_log_path HOMEBREW_PREFIX/"var/log/strongman.log"
+    environment_variables DJANGO_SETTINGS_MODULE: "strongMan.settings.production"
   end
 
   def post_install
     puts "=== strongMan Installation Complete ==="
     puts ""
-    puts "NEXT STEPS:"
-    puts "1. Initialize database: #{bin}/strongman migrate --noinput"
-    puts "2. Create admin user: #{bin}/strongman createsuperuser"
-    puts "3. Start server: brew services start strongman"
-    puts "4. Access locally: http://127.0.0.1:1515"
-    puts "5. Access remotely: http://YOUR_SERVER_IP:1515"
+    puts "QUICK START:"
+    puts "1. Create admin user: #{bin}/strongman createsuperuser"
+    puts "2. Start service: brew services start strongman"
+    puts "3. Access at: http://127.0.0.1:1515 (or http://YOUR_SERVER_IP:1515)"
+    puts ""
+    puts "The service will automatically start strongSwan and fix VICI permissions."
     puts ""
     puts "SECURITY WARNING: Change default keys for production!"
     puts "- secret_key.txt: #{libexec}/secret_key.txt"
     puts "- db_key.txt: #{libexec}/db_key.txt"
     puts ""
-    puts "VICI Setup: Ensure strongSwan is running with VICI socket enabled"
+    puts "strongSwan Setup:"
+    puts "- Start strongSwan: sudo ipsec start"
+    puts "- Restart if already running: sudo ipsec restart"
+    puts "- Fix VICI permissions: #{bin}/strongman-fix-vici"
+    puts "- VICI socket will be created at: /var/run/charon.vici"
     puts ""
     puts "Config files:"
-    puts "- strongSwan: /usr/local/etc/ipsec.conf"
-    puts "- VICI socket: /var/run/charon.vici (requires root or group access)"
+    puts "- strongSwan: #{HOMEBREW_PREFIX}/etc/ipsec.conf"
+    puts "- VICI config: #{HOMEBREW_PREFIX}/etc/strongswan.d/charon/vici.conf"
     puts ""
-    puts "Run the database migration manually:"
-    puts "  #{bin}/strongman migrate --noinput"
+    puts "Database and static files are configured automatically during installation."
   end
 
   test do
