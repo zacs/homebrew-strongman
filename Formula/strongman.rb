@@ -44,6 +44,11 @@ class Strongman < Formula
     sha256 "032ec1c532617922e6e3e956d504a6fb1acce4fc1c7c94612d0fda21828ce8ef"
   end
 
+  resource "asgiref" do
+    url "https://files.pythonhosted.org/packages/29/38/b3395cc9ad1b56d2ddac9970bc8f4141312dbaec28bc7c218b0dfafd0f42/asgiref-3.8.1.tar.gz"
+    sha256 "c343bd80a0bec947a9860adb4c432ffa7db769836c64238fc34bdc3fec84d590"
+  end
+
   resource "oscrypto" do
     url "https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.tar.gz"
     sha256 "5855d4cc18172513c6b2c6dde00b89731faa907c7003d4965862f2f2e0fb9ae4"
@@ -57,30 +62,28 @@ class Strongman < Formula
     # Create configuration directory
     (etc/"strongman").mkpath
     
-    # Create data directories
+    # Create data directories (following macOS conventions)
     (var/"lib/strongman").mkpath
-    (var/"log/strongman").mkpath
 
     # Install Django project files to libexec
     # Install the entire repository structure
     libexec.install Dir["*"]
     
-    # Create wrapper script for Django management using django-admin
-    (bin/"strongman").write_env_script libexec/"bin/django-admin",
+    # Create wrapper script for Django management using manage.py
+    (bin/"strongman").write_env_script libexec/"bin/python", libexec/"manage.py",
       :PYTHONPATH => libexec,
       :DJANGO_SETTINGS_MODULE => "strongMan.settings.production",
       :STRONGMAN_SECRET_KEY => "homebrew-default-key-change-in-production",
       :STRONGMAN_DEBUG => "False",
       :STRONGMAN_DATABASE_PATH => var/"lib/strongman/db.sqlite3",
-      :STRONGMAN_LOG_DIR => var/"log/strongman",
       :DJANGO_ALLOWED_HOSTS => "*"
   end
 
   service do
     run [opt_bin/"strongman", "runserver", "0.0.0.0:1515"]
     working_dir var/"lib/strongman"
-    log_path var/"log/strongman/stdout.log"
-    error_log_path var/"log/strongman/stderr.log"
+    log_path "~/Library/Logs/strongman.log"
+    error_log_path "~/Library/Logs/strongman.error.log"
   end
 
   def post_install
