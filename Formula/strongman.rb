@@ -61,7 +61,7 @@ class Strongman < Formula
 
   resource "tzdata" do
     url "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz"
-    sha256 "b60a638fcc0daffadf82fe3c2c4d11cb31af38fcd48fa2e9c4ad5ac4c14d27a0"
+    sha256 "b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"
   end
 
   resource "oscrypto" do
