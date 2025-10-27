@@ -82,15 +82,14 @@ class Strongman < Formula
   end
 
   def post_install
-    # Initialize database
-    system bin/"strongman", "migrate", "--noinput"
-    
     puts "=== strongMan Installation Complete ==="
     puts ""
-    puts "1. Create admin user: #{bin}/strongman createsuperuser"
-    puts "2. Start server: brew services start strongman"
-    puts "3. Access locally: http://127.0.0.1:1515"
-    puts "4. Access remotely: http://YOUR_SERVER_IP:1515"
+    puts "NEXT STEPS:"
+    puts "1. Initialize database: #{bin}/strongman migrate --noinput"
+    puts "2. Create admin user: #{bin}/strongman createsuperuser"
+    puts "3. Start server: brew services start strongman"
+    puts "4. Access locally: http://127.0.0.1:1515"
+    puts "5. Access remotely: http://YOUR_SERVER_IP:1515"
     puts ""
     puts "SECURITY WARNING: Change STRONGMAN_SECRET_KEY for production!"
     puts "VICI Setup: Ensure strongSwan is running with VICI socket enabled"
@@ -98,6 +97,9 @@ class Strongman < Formula
     puts "Config files:"
     puts "- strongSwan: /usr/local/etc/ipsec.conf"
     puts "- VICI socket: /var/run/charon.vici (requires root or group access)"
+    puts ""
+    puts "Run the database migration manually:"
+    puts "  #{bin}/strongman migrate --noinput"
   end
 
   test do
