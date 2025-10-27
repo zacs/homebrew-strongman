@@ -71,11 +71,12 @@ class Strongman < Formula
       :STRONGMAN_SECRET_KEY => "homebrew-default-key-change-in-production",
       :STRONGMAN_DEBUG => "False",
       :STRONGMAN_DATABASE_PATH => var/"lib/strongman/db.sqlite3",
-      :STRONGMAN_LOG_DIR => var/"log/strongman"
+      :STRONGMAN_LOG_DIR => var/"log/strongman",
+      :DJANGO_ALLOWED_HOSTS => "*"
   end
 
   service do
-    run [opt_bin/"strongman", "runserver", "127.0.0.1:8000"]
+    run [opt_bin/"strongman", "runserver", "0.0.0.0:1515"]
     working_dir var/"lib/strongman"
     log_path var/"log/strongman/stdout.log"
     error_log_path var/"log/strongman/stderr.log"
@@ -85,10 +86,19 @@ class Strongman < Formula
     # Initialize database
     system bin/"strongman", "migrate", "--noinput"
     
-    # Create superuser (optional)
-    puts "To create an admin user, run: #{bin}/strongman createsuperuser"
-    puts "To start the server, run: brew services start strongman" 
-    puts "strongMan will be available at http://127.0.0.1:8000"
+    puts "=== strongMan Installation Complete ==="
+    puts ""
+    puts "1. Create admin user: #{bin}/strongman createsuperuser"
+    puts "2. Start server: brew services start strongman"
+    puts "3. Access locally: http://127.0.0.1:1515"
+    puts "4. Access remotely: http://YOUR_SERVER_IP:1515"
+    puts ""
+    puts "SECURITY WARNING: Change STRONGMAN_SECRET_KEY for production!"
+    puts "VICI Setup: Ensure strongSwan is running with VICI socket enabled"
+    puts ""
+    puts "Config files:"
+    puts "- strongSwan: /usr/local/etc/ipsec.conf"
+    puts "- VICI socket: /var/run/charon.vici (requires root or group access)"
   end
 
   test do
