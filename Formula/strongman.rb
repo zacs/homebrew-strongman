@@ -112,9 +112,7 @@ class Strongman < Formula
       :STRONGMAN_DATABASE_PATH => var/"lib/strongman/db.sqlite3",
       :DJANGO_ALLOWED_HOSTS => "*"
     
-    # Initialize Django application
-    system bin/"strongman", "migrate", "--noinput"
-    system bin/"strongman", "collectstatic", "--noinput", "--clear"
+
     
     # Create VICI permission fix script
     vici_fix_script = <<~EOS
@@ -170,6 +168,11 @@ class Strongman < Formula
   end
 
   def post_install
+    # Initialize Django application after installation
+    system bin/"strongman", "migrate", "--noinput"
+    system bin/"strongman", "collectstatic", "--noinput", "--clear"
+    
+    # Display setup instructions
     puts "=== strongMan Installation Complete ==="
     puts ""
     puts "QUICK START:"
