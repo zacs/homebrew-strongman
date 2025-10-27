@@ -54,15 +54,25 @@ class Strongman < Formula
     sha256 "674641c64bc75507af2eb20bef7e7e3593dca993dec6674be108fa15b42f47c8"
   end
 
+  resource "sqlparse" do  
+    url "https://files.pythonhosted.org/packages/e5/40/edede8dd6977b0d3da179a342c198ed100dd2aba4be081861ee5911e4da4/sqlparse-0.5.3.tar.gz"
+    sha256 "09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272"
+  end
+
   resource "oscrypto" do
     url "https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.tar.gz"
     sha256 "5855d4cc18172513c6b2c6dde00b89731faa907c7003d4965862f2f2e0fb9ae4"
   end
 
   def install
-    # Create the virtualenv and install dependencies only
+    # Create the virtualenv and install dependencies from requirements.txt
     venv = virtualenv_create(libexec, "python3.13")
+    
+    # First install resources we need
     venv.pip_install resources
+    
+    # Then install everything from strongMan's requirements.txt
+    venv.pip_install buildpath/"requirements.txt"
     
     # Create configuration directory
     (etc/"strongman").mkpath
