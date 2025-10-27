@@ -62,11 +62,13 @@ class Strongman < Formula
     (var/"log/strongman").mkpath
 
     # Install Django project files to libexec
-    libexec.install "strongMan"
+    # Install the entire repository structure
+    libexec.install Dir["*"]
     
-    # Create wrapper script for manage.py
-    (bin/"strongman").write_env_script libexec/"bin/python", libexec/"strongMan/manage.py",
+    # Create wrapper script for Django management using django-admin
+    (bin/"strongman").write_env_script libexec/"bin/django-admin",
       :PYTHONPATH => libexec,
+      :DJANGO_SETTINGS_MODULE => "strongMan.settings.production",
       :STRONGMAN_SECRET_KEY => "homebrew-default-key-change-in-production",
       :STRONGMAN_DEBUG => "False",
       :STRONGMAN_DATABASE_PATH => var/"lib/strongman/db.sqlite3",
