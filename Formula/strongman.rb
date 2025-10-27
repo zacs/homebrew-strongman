@@ -82,15 +82,18 @@ class Strongman < Formula
     (var/"lib/strongman").mkpath
     (var/"log").mkpath
     
-    # Configure strongSwan VICI plugin
-    vici_conf = <<~EOS
-      vici {
-          load = yes
-          socket = unix:///var/run/charon.vici
-      }
-    EOS
-    
-    (etc/"strongswan.d/charon/vici.conf").write vici_conf
+    # Configure strongSwan VICI plugin (only if not already configured)
+    vici_conf_path = etc/"strongswan.d/charon/vici.conf"
+    unless vici_conf_path.exist?
+      vici_conf = <<~EOS
+        vici {
+            load = yes
+            socket = unix:///var/run/charon.vici
+        }
+      EOS
+      
+      vici_conf_path.write vici_conf
+    end
 
     # Install Django project files to libexec
     # Install the entire repository structure
