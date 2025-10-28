@@ -132,23 +132,16 @@ class Strongman < Formula
     # Create service wrapper script that handles setup
     service_wrapper = <<~EOS
       #!/bin/bash
-      # strongMan service wrapper with automatic setup
+      # strongMan service wrapper - simplified for Homebrew services
       
       echo "Starting strongMan service..."
       
-      # Start strongSwan if not running
-      if ! pgrep -f charon > /dev/null; then
-        echo "Starting strongSwan..."
-        sudo ipsec start
-        sleep 2
-      fi
-      
-      # Fix VICI permissions
+      # Check if VICI socket exists (but don't try to fix permissions - user must do this manually)
       if [ -e /var/run/charon.vici ]; then
-        sudo chmod 666 /var/run/charon.vici
-        echo "VICI permissions fixed"
+        echo "VICI socket found"
       else
-        echo "Warning: VICI socket not found"
+        echo "Warning: VICI socket not found at /var/run/charon.vici"
+        echo "Please ensure strongSwan is running and run: strongman-fix-vici"
       fi
       
       # Start Django server
@@ -177,10 +170,12 @@ class Strongman < Formula
     puts ""
     puts "QUICK START:"
     puts "1. Create admin user: #{bin}/strongman createsuperuser"
-    puts "2. Start service: brew services start strongman"
-    puts "3. Access at: http://127.0.0.1:1515 (or http://YOUR_SERVER_IP:1515)"
+    puts "2. Start strongSwan: sudo ipsec start"
+    puts "3. Fix VICI permissions: #{bin}/strongman-fix-vici"
+    puts "4. Start service: brew services start strongman"
+    puts "5. Access at: http://127.0.0.1:1515 (or http://YOUR_SERVER_IP:1515)"
     puts ""
-    puts "The service will automatically start strongSwan and fix VICI permissions."
+    puts "Note: Steps 2-3 are required each time strongSwan is restarted."
     puts ""
     puts "SECURITY WARNING: Change default keys for production!"
     puts "- secret_key.txt: #{libexec}/secret_key.txt"
